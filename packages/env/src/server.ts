@@ -7,7 +7,9 @@ export const env = createEnv({
     CORS_ORIGIN: z.url().or(z.literal("*")),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     PORT: z.coerce.number(),
-    DATABASE_URL: z.string()
+    DATABASE_URL: z.string(),
+    GITHUB_OAUTH_CLIENT_ID: z.string(),
+    GITHUB_OAUTH_CLIENT_SECRET: z.string()
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
