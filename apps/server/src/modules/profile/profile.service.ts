@@ -50,7 +50,7 @@ export async function createProfile(name: string): StandardServiceResponse {
       code: 502,
     });
 
-  let existingUser = await findProfileByName(name);
+  const existingUser = await findProfileByName(name);
   delete existingUser?.updated_at;
 
   if (existingUser) {
@@ -130,7 +130,7 @@ export async function searchProfiles(
       // count: result.length,
       page: parsedPayload.page,
       limit: parsedPayload.limit,
-      total: Number(result[0]?.total ?? 0) ?? 0,
+      total: Number(result[0]?.total ? result[0]?.total : 0) ,
       data: result.map((r) => ({
         age: r.age,
         age_group: r.age_group,
@@ -190,7 +190,8 @@ export async function getProfiles(
             typeof r
           >,
       ),
-      total: Number(result[0]?.total ?? 0) ?? 0,
+      total: Number(result[0]?.total ? result[0]?.total : 0) ,
+      // total: Number(result[0]?.total ?? 0) ?? 0,
       status: "success",
     },
     statusCode: StatusCodes.OK,
