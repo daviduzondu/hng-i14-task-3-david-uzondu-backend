@@ -59,7 +59,7 @@ export const createNewProfile = async ({
       country_id: country.toUpperCase(),
       country_name: (() => {
         const name = countries.find((c) => c.code === country).name;
-        if (!!name) return name;
+        if (name) return name;
         else throw new Error("Could not match country with given ID");
       })(),
       country_probability: country_probability ?? 1,

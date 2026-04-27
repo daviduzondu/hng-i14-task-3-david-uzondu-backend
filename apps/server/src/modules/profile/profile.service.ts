@@ -57,7 +57,7 @@ export async function createProfile(name: string): StandardServiceResponse {
     return {
       statusCode: StatusCodes.OK,
       body: {
-        message: "Profile already exists",
+        message: "Profle already exists",
         data: existingUser,
         status: "success",
       },
