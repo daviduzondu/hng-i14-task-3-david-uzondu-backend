@@ -14,7 +14,9 @@
     "start": "pnpm --filter server start",
     "migrate:dev": "pnpm -F server exec pnpm dlx prisma migrate dev",
     "migrate:deploy": "pnpm -F server exec pnpm dlx prisma migrate deploy",
-    "generate:dev": "pnpm -F server exec pnpm dlx prisma generate dev"
+    "generate:dev": "pnpm -F server exec pnpm dlx prisma generate dev",
+    "typecheck": "pnpm -F server typecheck",
+    "lint": "pnpm -F server lint"
   },
   "dependencies": {
     "@hng-i14-task-0-david-uzondu/env": "workspace:*",
