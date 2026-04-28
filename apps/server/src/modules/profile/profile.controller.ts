@@ -59,7 +59,7 @@ export const exportProfile = async (
     const filename = `profiles_${format(new Date(), "yyyy-MM-dd_HH-mm-ss")}.csv`;
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    return res.send(result.body.data.csv);
+    return res.status(StatusCodes.OK).send(result.body.data.csv);
   } else {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: "error",
