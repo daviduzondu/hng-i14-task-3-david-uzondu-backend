@@ -12,6 +12,11 @@ export const env = createEnv({
     DATABASE_URL: z.string(),
     GITHUB_OAUTH_CLIENT_ID: z.string(),
     GITHUB_OAUTH_CLIENT_SECRET: z.string(),
+    ACCESS_TOKEN_SECRET: z.string(),
+    REFRESH_TOKEN_SECRET: z.string(),
+    ACCESS_TOKEN_EXPIRES: z.string(),
+    REFRESH_TOKEN_EXPIRES: z.string(),
+    BACKEND_URL: z.string()
   },
   clientPrefix: "PUBLIC_",
   client: {},

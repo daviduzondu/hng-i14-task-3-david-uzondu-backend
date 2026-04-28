@@ -1,4 +1,4 @@
-import type { profileQuerySchema } from "@/schema/profile-query.schema";
+import type { profileQuerySchema } from "@/schema/profile.schema";
 import type z from "zod";
 import parse from "compromise";
 import countryCodeMapping from "@/lookup/country-code.lookup.json";
@@ -43,10 +43,12 @@ export function generateRefreshToken(payload: Payload & { jti: string }) {
   });
 }
 export function verifyAccessToken(token: string) {
-  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET) as jwt.JwtPayload &
+    Payload;
 }
 export function verifyRefreshToken(token: string) {
-  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET) as jwt.JwtPayload &
+    Payload;
 }
 
 export function parseSearchQuery(text: string) {
@@ -131,7 +133,7 @@ export async function catchAndThrowError<T>(
     const result = await fn();
     return result;
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     Object.values(errorMap).forEach((map) => {
       if (error instanceof map.errorClass) {
         throw new AppError({
@@ -150,9 +152,9 @@ export async function catchAndThrowError<T>(
   }
 }
 
-export function makeGitHubHeaders(accessToken: string) {
+export function makeGitHubHeaders(access_token: string) {
   return {
-    Authorization: `Bearer ${accessToken}`,
+    Authorization: `Bearer ${access_token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };

@@ -1,6 +1,6 @@
 import { db } from "@/db/db";
 import type { AgeGroup, DB, Gender } from "@/db/generated/types";
-import type { profileQuerySchema } from "@/schema/profile-query.schema";
+import type { profileQuerySchema } from "@/schema/profile.schema";
 // import type {
 //   AgifyResponse,
 //   GenderizeResponse,

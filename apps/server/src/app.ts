@@ -6,7 +6,9 @@ import type { ErrorResponse } from "@/misc/types";
 import profileRoutes from "@/modules/profile/profile.route";
 import authRoutes from "@/modules/auth/auth.route";
 import { AppError } from "@/errors/app.error";
-import { authenticate } from "@/modules/auth/auth.middleware";
+import cookieParser from "cookie-parser";
+import { authenticate, isActive } from "@/modules/auth/auth.middleware";
+import { requireApiVersion } from "@/modules/profile/profile.middleware";
 
 const app: Express = express();
 app.use(
@@ -16,13 +18,18 @@ app.use(
   }),
 );
 
+app.use(cookieParser());
 app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.status(200).send("OK world");
 });
 
-app.use("/api/profiles", authenticate, profileRoutes);
+app.use("/api/profiles", 
+  requireApiVersion, 
+  authenticate, 
+  isActive,
+  profileRoutes);
 app.use("/auth", authRoutes);
 
 app.use(
@@ -30,7 +37,6 @@ app.use(
     err: Error,
     _req: Request,
     res: Response<ErrorResponse>,
-    _next: (err: Error) => void,
   ) => {
     if (err instanceof AppError) {
       return res.status(err.code).json({
@@ -44,7 +50,7 @@ app.use(
         message: err.message,
       });
     } else {
-        console.error(err.message)
+      console.error(err.message);
       return res.status(500).json({
         status: "error",
         message: "Internal server error",

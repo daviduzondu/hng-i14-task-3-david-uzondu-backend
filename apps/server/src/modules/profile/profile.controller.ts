@@ -2,10 +2,13 @@ import type { Request, Response } from "express";
 import * as profileService from "@/modules/profile/profile.service";
 import type { SuccessResponse, ErrorResponse } from "@/misc/types";
 import type {
+  exportProfilesSchema,
   profileQuerySchema,
   profileSearchSchema,
-} from "@/schema/profile-query.schema";
+} from "@/schema/profile.schema";
 import type z from "zod";
+import { format } from "date-fns";
+import { StatusCodes } from "http-status-codes";
 
 export const createProfile = async (
   req: Request<object, object, { name: string }, object>,
@@ -45,4 +48,22 @@ export const deleteProfile = async (
 ) => {
   const result = await profileService.deleteProfile(req.params.id);
   return res.status(result.statusCode).json();
+};
+
+export const exportProfile = async (
+  req: Request<object, object, object, z.infer<typeof exportProfilesSchema>>,
+  res: Response,
+) => {
+  const result = await profileService.exportProfile(req.query);
+  if (result.body.status === "success") {
+    const filename = `profiles_${format(new Date(), "yyyy-MM-dd_HH-mm-ss")}.csv`;
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(result.body.data.csv);
+  } else {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "Failed to generate CSV file",
+    });
+  }
 };
