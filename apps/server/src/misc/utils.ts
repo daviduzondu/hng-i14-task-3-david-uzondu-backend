@@ -18,8 +18,8 @@ import type { Request, Response, NextFunction } from "express";
 //     path: '/auth/refresh',
 //   })
 
-export function validateSchema(schema: z.ZodType, getPayload: (r: Request) => unknown) {
-    return (req: Request, _res: Response, next: NextFunction) => {
+export function validateSchema(schema: z.ZodType, getPayload:(r: Request<object, object, object, object>) => unknown) {
+    return (req: Request<object, object, object, object>, _res: Response, next: NextFunction) => {
         const { error } = schema.safeParse(getPayload(req)); 
         if (error)
             throw new AppError({

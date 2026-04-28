@@ -1,8 +1,4 @@
-import { profileQuerySchema, profileSearchSchema } from "@/schema/profile-query.schema";
-import type { ErrorResponse, SuccessResponse } from "@/misc/types";
 import { type NextFunction, type Request, type Response } from "express";
-import { StatusCodes } from "http-status-codes";
-import type z from "zod";
 
 export const validateCreateProfile = (req: Request, _res: Response, next: NextFunction) => {
  if (!req.body || req.body.name === undefined) {

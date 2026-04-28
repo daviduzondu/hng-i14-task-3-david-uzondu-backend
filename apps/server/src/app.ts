@@ -6,7 +6,6 @@ import type { ErrorResponse } from "@/misc/types";
 import profileRoutes from "@/modules/profile/profile.route";
 import authRoutes from "@/modules/auth/auth.route";
 import { AppError } from "@/errors/app.error";
-import cookieParser from "cookie-parser";
 import { authenticate } from "@/modules/auth/auth.middleware";
 
 const app: Express = express();
