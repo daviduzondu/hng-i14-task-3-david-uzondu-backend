@@ -21,6 +21,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "catalog:",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.4.1",
     "http-status-codes": "^2.3.0",
     "json-2-csv": "^5.5.10",
     "jsonwebtoken": "^9.0.3",

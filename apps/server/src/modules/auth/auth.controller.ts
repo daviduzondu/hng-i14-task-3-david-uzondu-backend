@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import * as authService from "@/modules/auth/auth.service";
 import type z from "zod";
 import type { githubCallbackSchema } from "@/schema/auth.schema";
+import { StatusCodes } from "http-status-codes";
 
 export async function createUser(
   req: Request<unknown, unknown, unknown, z.infer<typeof githubCallbackSchema>>,
