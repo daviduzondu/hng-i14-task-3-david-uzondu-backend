@@ -1,4 +1,4 @@
-import type { profile } from "@/db/generated/types";
+import type { profiles } from "@/db/generated/types";
 import type { Updateable } from "kysely";
 
 export interface GenderizeResponse {
@@ -23,7 +23,24 @@ export interface NationalizeResponse {
  }[]
 }
 
-export type SuccessData = Omit<Updateable<profile>, 'updated_at'> | Omit<Updateable<profile>, 'updated_at'>[]
+export interface GitHubUser {
+  id: number;
+  login: string;           // username
+  name: string | null;
+  email: string | null;    // public email only, may be null
+  avatar_url: string;
+  html_url: string;
+}
+
+export interface GitHubEmail {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+  visibility: "public" | "private" | null;
+}
+
+
+export type SuccessData = Omit<Updateable<profiles>, 'updated_at'> | Omit<Updateable<profiles>, 'updated_at'>[]
 export interface SuccessResponse {
  status: 'success';
  total?: number;

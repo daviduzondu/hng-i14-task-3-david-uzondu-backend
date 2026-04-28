@@ -1,7 +1,7 @@
 import { profiles } from "@/../seed_profiles.json";
 import { db } from "@/db/db";
 
-await db.insertInto('profile').values(profiles)
+await db.insertInto('profiles').values(profiles)
  .onConflict((oc) => oc.column('id')
   .doNothing()
  )

@@ -5,6 +5,49 @@ import countryCodeMapping from "@/lookup/country-code.lookup.json";
 import profileQueryNlpMapping from "@/lookup/profile-query-nlp.lookup.json";
 import type View from "compromise/view/one";
 import { AppError } from "@/errors/app.error";
+import jwt from "jsonwebtoken";
+import type { Role } from "@/db/generated/types";
+import { StatusCodes } from "http-status-codes";
+import type { Request, Response, NextFunction } from "express";
+
+//  res.cookie('refreshToken', token, {
+//     httpOnly: true,         // So JS would not be able to read this cookie
+//     secure: process.env.NODE_ENV === 'production',  // HTTPS only in prod
+//     sameSite: 'strict',     // CSRF protection
+//     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+//     path: '/auth/refresh',
+//   })
+
+export function validateSchema(schema: z.ZodType, getPayload:(r: Request<object, object, object, object>) => unknown) {
+    return (req: Request<object, object, object, object>, _res: Response, next: NextFunction) => {
+        const { error } = schema.safeParse(getPayload(req)); 
+        if (error)
+            throw new AppError({
+                message: error.issues[0].message,
+                code: StatusCodes.BAD_REQUEST,
+            });
+        return next();
+    };
+}
+
+type Payload = { userId: string; role: Role };
+export function generateAccessToken(payload: Payload) {
+  return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRES as jwt.SignOptions["expiresIn"],
+  });
+}
+export function generateRefreshToken(payload: Payload & { jti: string }) {
+  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env
+      .REFRESH_TOKEN_EXPIRES as jwt.SignOptions["expiresIn"],
+  });
+}
+export function verifyAccessToken(token: string) {
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+}
+export function verifyRefreshToken(token: string) {
+  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+}
 
 export function parseSearchQuery(text: string) {
   const normalizedInput = text.toLowerCase();
@@ -68,32 +111,51 @@ export function parseSearchQuery(text: string) {
   } satisfies z.infer<typeof profileQuerySchema>;
 }
 
-type ErrorConstructor<T> = new (...args: T[]) => Error;
+export type ErrorConstructor = new (...args: never[]) => Error;
 
-type ErrorMap<T> = Record<
+type ErrorMap = Record<
   string,
   {
-    errorClass: ErrorConstructor<T>;
-    message: string;
-    code: number;
+    errorClass: ErrorConstructor;
+    message?: string;
+    code?: number;
+    getCode?: <T extends Error>(err: T) => number;
   }
 >;
 
-export async function catchAndThrowError<T, E>(
+export async function catchAndThrowError<T>(
   fn: () => Promise<T>,
-  errorMap: ErrorMap<E>,
+  errorMap: ErrorMap,
 ) {
   try {
     const result = await fn();
     return result;
   } catch (error) {
+    console.error(error);
     Object.values(errorMap).forEach((map) => {
       if (error instanceof map.errorClass) {
-        throw new AppError({ message: map.message, code: map.code });
+        throw new AppError({
+          message: error.message ?? map.message,
+          code: map.code
+            ? map.code
+            : map.getCode(error)
+              ? map.getCode(error)
+              : StatusCodes.INTERNAL_SERVER_ERROR,
+        });
       }
     });
-    throw new Error("Something went wrong!", { cause: error });
+    throw new Error("Something went wrong!", {
+      cause: error,
+    });
   }
+}
+
+export function makeGitHubHeaders(accessToken: string) {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
 }
 
 // const hasMatch = (values: string[]) =>
