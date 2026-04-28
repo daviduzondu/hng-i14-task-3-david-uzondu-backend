@@ -1,16 +1,13 @@
 import "@/scripts/seed-db";
 import { env } from "@hng-i14-task-0-david-uzondu/env/server";
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import type { ErrorResponse } from "@/misc/types";
 import profileRoutes from "@/modules/profile/profile.route";
 import authRoutes from "@/modules/auth/auth.route";
 import { AppError } from "@/errors/app.error";
+import cookieParser from "cookie-parser";
+import { authenticate } from "@/modules/auth/auth.middleware";
 
 const app: Express = express();
 app.use(
@@ -26,7 +23,7 @@ app.get("/", (_req, res) => {
   res.status(200).send("OK world");
 });
 
-app.use("/api/profiles", profileRoutes);
+app.use("/api/profiles", authenticate, profileRoutes);
 app.use("/auth", authRoutes);
 
 app.use(
@@ -34,9 +31,8 @@ app.use(
     err: Error,
     _req: Request,
     res: Response<ErrorResponse>,
-    _next: NextFunction,
+    _next: (err: Error) => void,
   ) => {
-    console.error(err);
     if (err instanceof AppError) {
       return res.status(err.code).json({
         status: "error",
@@ -49,6 +45,7 @@ app.use(
         message: err.message,
       });
     } else {
+        console.error(err.message)
       return res.status(500).json({
         status: "error",
         message: "Internal server error",

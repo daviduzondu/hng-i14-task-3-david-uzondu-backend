@@ -4,6 +4,11 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export const Role = {
+    admin: "admin",
+    analyst: "analyst"
+} as const;
+export type Role = (typeof Role)[keyof typeof Role];
 export const Gender = {
     female: "female",
     male: "male"
@@ -16,7 +21,7 @@ export const AgeGroup = {
     senior: "senior"
 } as const;
 export type AgeGroup = (typeof AgeGroup)[keyof typeof AgeGroup];
-export type profile = {
+export type profiles = {
     id: Generated<string>;
     name: string;
     gender: Gender;
@@ -29,6 +34,28 @@ export type profile = {
     created_at: Generated<Timestamp>;
     updated_at: Generated<Timestamp>;
 };
+export type refresh_tokens = {
+    id: Generated<string>;
+    user_id: string;
+    token_hash: string;
+    expires_at: Timestamp;
+    created_at: Generated<Timestamp>;
+    updated_at: Generated<Timestamp>;
+};
+export type users = {
+    id: Generated<string>;
+    github_id: string;
+    username: string;
+    email: string;
+    avatar_url: string;
+    role: Generated<Role>;
+    is_active: boolean;
+    last_login_at: Timestamp;
+    created_at: Generated<Timestamp>;
+    updated_at: Generated<Timestamp>;
+};
 export type DB = {
-    profile: profile;
+    profiles: profiles;
+    refresh_tokens: refresh_tokens;
+    users: users;
 };

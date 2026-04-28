@@ -117,7 +117,6 @@ export async function searchProfiles(
       statusCode: StatusCodes.BAD_REQUEST,
     };
 
-  console.log(query);
   const result = await filterProfiles({
     ...query,
     limit: parsedPayload.limit,

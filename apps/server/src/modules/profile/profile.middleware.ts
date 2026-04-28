@@ -28,22 +28,22 @@ export const validateCreateProfile = (req: Request, _res: Response, next: NextFu
  return next();
 }
 
-export const validateSearchQuery = async (req: Request<{}, {}, {}, z.infer<typeof profileSearchSchema>>, res: Response<SuccessResponse | ErrorResponse>, next: NextFunction) => {
- const { error } = profileSearchSchema.safeParse(req.query);
- if (error) return res.status(StatusCodes.BAD_REQUEST).json({
-  status: 'error',
-  message: error.issues[0].message
- })
+// export const validateSearchQuery = async (req: Request<object, object, object, z.infer<typeof profileSearchSchema>>, res: Response<SuccessResponse | ErrorResponse>, next: NextFunction) => {
+//  const { error } = profileSearchSchema.safeParse(req.query);
+//  if (error) return res.status(StatusCodes.BAD_REQUEST).json({
+//   status: 'error',
+//   message: error.issues[0].message
+//  })
 
- return next();
-}
+//  return next();
+// }
 
-export const validateProfilesFilter = async (req: Request<{}, {}, {}, z.infer<typeof profileQuerySchema>>, res: Response<SuccessResponse | ErrorResponse>, next: NextFunction) => {
- const { error } = profileQuerySchema.safeParse(req.query);
- if (error) return res.status(StatusCodes.BAD_REQUEST).json({
-  status: 'error',
-  message: error.issues[0].message
- })
+// export const validateProfilesFilter = async (req: Request<object, object, object, z.infer<typeof profileQuerySchema>>, res: Response<SuccessResponse | ErrorResponse>, next: NextFunction) => {
+//  const { error } = profileQuerySchema.safeParse(req.query);
+//  if (error) return res.status(StatusCodes.BAD_REQUEST).json({
+//   status: 'error',
+//   message: error.issues[0].message
+//  })
 
- return next();
-}
+//  return next();
+// }

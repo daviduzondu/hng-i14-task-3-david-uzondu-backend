@@ -1,32 +1,32 @@
 import { db } from "@/db/db";
 import type { AgeGroup, DB, Gender } from "@/db/generated/types";
 import type { profileQuerySchema } from "@/schema/profile-query.schema";
-import type {
-  AgifyResponse,
-  GenderizeResponse,
-  NationalizeResponse,
-} from "@/misc/types";
+// import type {
+//   AgifyResponse,
+//   GenderizeResponse,
+//   NationalizeResponse,
+// } from "@/misc/types";
 import { sql, type ValueExpression } from "kysely";
 import type z from "zod";
 import { countries } from "@/lookup/country-code.lookup.json";
 
 export const findProfileById = async (id: string) =>
   await db
-    .selectFrom("profile")
+    .selectFrom("profiles")
     .where("id", "=", id)
     .selectAll()
     .executeTakeFirstOrThrow();
 
 export const deleteProfileById = async (id: string) =>
   await db
-    .deleteFrom("profile")
+    .deleteFrom("profiles")
     .where("id", "=", id)
     .returning(["id"])
     .executeTakeFirstOrThrow();
 
 export const findProfileByName = async (name: string) =>
   await db
-    .selectFrom("profile")
+    .selectFrom("profiles")
     .where((eb) => eb(sql`LOWER(TRIM(name))`, "=", name.toLowerCase().trim()))
     .selectAll()
     .executeTakeFirst();
@@ -47,10 +47,10 @@ export const createNewProfile = async ({
   country_probability?: number;
 }) =>
   await db
-    .insertInto("profile")
+    .insertInto("profiles")
     .values({
       age: age,
-      age_group: ((age: number): ValueExpression<DB, "profile", AgeGroup> => {
+      age_group: ((age: number): ValueExpression<DB, "profiles", AgeGroup> => {
         if (age <= 12) return "child";
         if (age <= 19) return "teenager";
         if (age <= 59) return "adult";
@@ -74,7 +74,7 @@ export const filterProfiles = async (
   query: z.infer<typeof profileQuerySchema> & { offset?: number },
 ) =>
   await db
-    .selectFrom("profile")
+    .selectFrom("profiles")
     .$if(!!query.gender, (qb) =>
       qb.where((eb) =>
         eb(sql`LOWER(gender::text)`, "=", query.gender.toLowerCase().trim()),
