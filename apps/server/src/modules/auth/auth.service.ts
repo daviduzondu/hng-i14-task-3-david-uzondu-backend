@@ -80,6 +80,7 @@ export async function createUser(
     },
   );
 
+
   const accessToken = tokenRequest.data.access_token;
 
   if (!accessToken) {
