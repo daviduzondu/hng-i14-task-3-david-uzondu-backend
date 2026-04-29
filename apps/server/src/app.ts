@@ -28,6 +28,13 @@ const authRateLimit = rateLimit({
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
   },
+  keyGenerator: (req) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(",")[0];
+    return ip?.trim() || req.ip;
+  },
 });
 
 const otherRateLimit = rateLimit({
@@ -40,16 +47,25 @@ const otherRateLimit = rateLimit({
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
   },
+  keyGenerator: (req) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(",")[0];
+    return ip?.trim() || req.ip;
+  },
 });
 
 const app: Express = express();
-app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (curl, bots, server-to-server)
-    callback(null, origin || "*");
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (curl, bots, server-to-server)
+      callback(null, origin || "*");
+    },
+    credentials: true,
+  }),
+);
 
 app.use(cookieParser());
 app.use(express.json());
