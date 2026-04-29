@@ -16,6 +16,7 @@ import { authenticate, isActive } from "@/modules/auth/auth.middleware";
 import { requireApiVersion } from "@/modules/profile/profile.middleware";
 import { rateLimit } from "express-rate-limit";
 import { StatusCodes } from "http-status-codes";
+import { getUserDetails } from "@/modules/auth/auth.controller";
 
 const authRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -26,6 +27,13 @@ const authRateLimit = rateLimit({
       message: "[A] You've been doing that a lot! Take a break!",
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
+  },
+  keyGenerator: (req) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(",")[0];
+    return ip?.trim() || req.ip;
   },
 });
 
@@ -39,16 +47,25 @@ const otherRateLimit = rateLimit({
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
   },
+  keyGenerator: (req) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(",")[0];
+    return ip?.trim() || req.ip;
+  },
 });
 
 const app: Express = express();
-app.use(cors({
-  origin: (origin, callback) => {
-    // allow requests with no origin (curl, bots, server-to-server)
-    callback(null, origin || "*");
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (curl, bots, server-to-server)
+      callback(null, origin || "*");
+    },
+    credentials: true,
+  }),
+);
 
 app.use(cookieParser());
 app.use(express.json());
@@ -57,6 +74,7 @@ app.get("/", (_req, res) => {
   res.status(200).send("OK world");
 });
 
+app.get("/api/users/me", authenticate, getUserDetails);
 app.use(
   "/api/profiles",
   otherRateLimit,

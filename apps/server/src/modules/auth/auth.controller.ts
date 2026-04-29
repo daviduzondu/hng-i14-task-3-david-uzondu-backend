@@ -4,6 +4,7 @@ import type z from "zod";
 import type { githubCallbackSchema } from "@/schema/auth.schema";
 import { StatusCodes } from "http-status-codes";
 import * as jwt from "jsonwebtoken";
+import { revokeToken } from "@/modules/auth/auth.repository";
 
 export async function getUserDetails(
   req: Request<unknown, unknown, unknown, z.infer<typeof githubCallbackSchema>>,
@@ -26,6 +27,7 @@ export async function loginUser(
     code: req.query.code,
     code_verifier: req.query.code_verifier,
     client,
+    state: req.query.state,
   });
   const isProduction = process.env.NODE_ENV === "production";
   if (result.body.status === "success") {
@@ -53,6 +55,7 @@ export async function loginUser(
         access_token: result.body.data.access_token,
         username: result.body.data.username,
         role: result.body.data.role,
+        refresh_token: result.body.data.refresh_token
       },
     });
   } else {
@@ -94,7 +97,7 @@ export async function refreshToken(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  const token = req.cookies?.refreshToken;
+  const token = req.cookies.refresh_token;
   if (token) {
     await authService.logout(token);
   }
