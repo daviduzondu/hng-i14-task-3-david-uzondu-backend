@@ -37,34 +37,34 @@ export function buildTestAuthPayload({
 }) {
   return {
     // flat generic
-    // access_token: adminAccessToken,
-    // refresh_token: adminRefreshToken,
+    access_token: adminAccessToken,
+    refresh_token: adminRefreshToken,
 
     // // role-specific flat
     // admin_access_token: adminAccessToken,
     // admin_refresh_token: adminRefreshToken,
-    // analyst_access_token: analystAccessToken,
-    // analyst_refresh_token: analystRefreshToken,
+    analyst_access_token: analystAccessToken,
+    analyst_refresh_token: analystRefreshToken,
 
     // grouped structure
-    admin: {
-      id: adminId,
-      userId: adminUserId,
-      role: adminRole,
-      username: adminUsername,
-      email: adminEmail,
-      access_token: adminAccessToken,
-      refresh_token: adminRefreshToken,
-    },
+    // admin: {
+    //   id: adminId,
+    //   userId: adminUserId,
+    //   role: adminRole,
+    //   username: adminUsername,
+    //   email: adminEmail,
+    //   access_token: adminAccessToken,
+    //   refresh_token: adminRefreshToken,
+    // },
 
-    analyst: {
-      id: analystId,
-      userId: analystUserId,
-      role: analystRole,
-      username: analystUsername,
-      email: analystEmail,
-      access_token: analystAccessToken,
-      refresh_token: analystRefreshToken,
-    },
+    // analyst: {
+    //   id: analystId,
+    //   userId: analystUserId,
+    //   role: analystRole,
+    //   username: analystUsername,
+    //   email: analystEmail,
+    //   access_token: analystAccessToken,
+    //   refresh_token: analystRefreshToken,
+    // },
   };
 }
