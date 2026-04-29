@@ -6,6 +6,20 @@ import { addMinutes } from "date-fns";
 import { AppError } from "@/errors/app.error";
 import { StatusCodes } from "http-status-codes";
 
+export async function getUserDetails(userId: string) {
+  const result = await db
+    .selectFrom("users")
+    .where("users.id", "=", userId)
+    .select(["id", "role", "avatar_url", "is_active", 'username'])
+    .executeTakeFirstOrThrow(() => {
+      throw new AppError({
+        message: "User not found",
+        code: StatusCodes.NOT_FOUND,
+      });
+    });
+  return result;
+}
+
 export async function createUser(data: Insertable<users>) {
   const result = await db
     .insertInto("users")
