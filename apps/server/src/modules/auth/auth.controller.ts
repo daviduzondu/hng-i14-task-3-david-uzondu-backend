@@ -31,7 +31,6 @@ export async function loginUser(
     req.query.code.includes("analyst") ||
     req.query.code.includes("test");
 
-  console.log(isGrader);
 
   if (isGrader) {
     const result = await authService.loginGrader();
