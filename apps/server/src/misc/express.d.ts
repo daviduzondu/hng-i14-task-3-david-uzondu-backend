@@ -1,8 +1,9 @@
+import type { verifyAccessToken } from "@/misc/utils";
 
 declare global {
   namespace Express {
     interface Request {
-      user?: { userId: string; role: Role } & JwtPayload;
+      user?: Awaited<ReturnType<typeof verifyAccessToken>>
     }
   }
 }

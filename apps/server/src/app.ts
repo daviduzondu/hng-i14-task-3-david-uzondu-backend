@@ -1,12 +1,45 @@
 import "@/scripts/seed-db";
 import { env } from "@hng-i14-task-0-david-uzondu/env/server";
-import express, { type Express, type Request, type Response } from "express";
+import express, {
+  type Express,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import cors from "cors";
 import type { ErrorResponse } from "@/misc/types";
 import profileRoutes from "@/modules/profile/profile.route";
 import authRoutes from "@/modules/auth/auth.route";
 import { AppError } from "@/errors/app.error";
-import { authenticate } from "@/modules/auth/auth.middleware";
+import cookieParser from "cookie-parser";
+import { authenticate, isActive } from "@/modules/auth/auth.middleware";
+import { requireApiVersion } from "@/modules/profile/profile.middleware";
+import { rateLimit } from "express-rate-limit";
+import { StatusCodes } from "http-status-codes";
+
+const authRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  limit: 10,
+  ipv6Subnet: 52,
+  handler: (_req, _res, _next) => {
+    throw new AppError({
+      message: "You've been doing that a lot! Take a break!",
+      code: StatusCodes.TOO_MANY_REQUESTS,
+    });
+  },
+});
+
+const otherRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  limit: 60,
+  ipv6Subnet: 52,
+  handler: (_req, _res, _next) => {
+    throw new AppError({
+      message: "You've been doing that a lot! Take a break!",
+      code: StatusCodes.TOO_MANY_REQUESTS,
+    });
+  },
+});
 
 const app: Express = express();
 app.use(
@@ -16,21 +49,29 @@ app.use(
   }),
 );
 
+app.use(cookieParser());
 app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.status(200).send("OK world");
 });
 
-app.use("/api/profiles", authenticate, profileRoutes);
-app.use("/auth", authRoutes);
+app.use(
+  "/api/profiles",
+  otherRateLimit,
+  requireApiVersion,
+  authenticate,
+  isActive,
+  profileRoutes,
+);
+app.use("/auth", authRateLimit, authRoutes);
 
 app.use(
   (
     err: Error,
     _req: Request,
     res: Response<ErrorResponse>,
-    _next: (err: Error) => void,
+    _next: NextFunction,
   ) => {
     if (err instanceof AppError) {
       return res.status(err.code).json({
@@ -44,7 +85,7 @@ app.use(
         message: err.message,
       });
     } else {
-        console.error(err.message)
+      console.error(err);
       return res.status(500).json({
         status: "error",
         message: "Internal server error",

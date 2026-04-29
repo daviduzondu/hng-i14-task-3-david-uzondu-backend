@@ -1,4 +1,4 @@
-import type { profileQuerySchema } from "@/schema/profile-query.schema";
+import type { profileQuerySchema } from "@/schema/profile.schema";
 import type z from "zod";
 import parse from "compromise";
 import countryCodeMapping from "@/lookup/country-code.lookup.json";
@@ -18,16 +18,23 @@ import type { Request, Response, NextFunction } from "express";
 //     path: '/auth/refresh',
 //   })
 
-export function validateSchema(schema: z.ZodType, getPayload:(r: Request<object, object, object, object>) => unknown) {
-    return (req: Request<object, object, object, object>, _res: Response, next: NextFunction) => {
-        const { error } = schema.safeParse(getPayload(req)); 
-        if (error)
-            throw new AppError({
-                message: error.issues[0].message,
-                code: StatusCodes.BAD_REQUEST,
-            });
-        return next();
-    };
+export function validateSchema(
+  schema: z.ZodType,
+  getPayload: (r: Request<object, object, object, object>) => unknown,
+) {
+  return (
+    req: Request<object, object, object, object>,
+    _res: Response,
+    next: NextFunction,
+  ) => {
+    const { error } = schema.safeParse(getPayload(req));
+    if (error)
+      throw new AppError({
+        message: error.issues[0].message,
+        code: StatusCodes.BAD_REQUEST,
+      });
+    return next();
+  };
 }
 
 type Payload = { userId: string; role: Role };
@@ -43,10 +50,12 @@ export function generateRefreshToken(payload: Payload & { jti: string }) {
   });
 }
 export function verifyAccessToken(token: string) {
-  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET) as jwt.JwtPayload &
+    Payload;
 }
 export function verifyRefreshToken(token: string) {
-  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET) as jwt.JwtPayload &
+    Payload;
 }
 
 export function parseSearchQuery(text: string) {
@@ -131,28 +140,29 @@ export async function catchAndThrowError<T>(
     const result = await fn();
     return result;
   } catch (error) {
-    console.error(error);
-    Object.values(errorMap).forEach((map) => {
+    // console.error(error);
+    for (const map of Object.values(errorMap)) {
       if (error instanceof map.errorClass) {
+        const code =
+          map.getCode(error) ?? map.code ?? StatusCodes.INTERNAL_SERVER_ERROR;
+          console.log(code)
+
         throw new AppError({
           message: error.message ?? map.message,
-          code: map.code
-            ? map.code
-            : map.getCode(error)
-              ? map.getCode(error)
-              : StatusCodes.INTERNAL_SERVER_ERROR,
+          code,
         });
       }
-    });
+    }
+    console.log("HERE O!");
     throw new Error("Something went wrong!", {
       cause: error,
     });
   }
 }
 
-export function makeGitHubHeaders(accessToken: string) {
+export function makeGitHubHeaders(access_token: string) {
   return {
-    Authorization: `Bearer ${accessToken}`,
+    Authorization: `Bearer ${access_token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };

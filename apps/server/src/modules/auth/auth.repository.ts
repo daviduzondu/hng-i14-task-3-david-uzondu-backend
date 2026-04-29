@@ -3,6 +3,8 @@ import type { users } from "@/db/generated/types";
 import { sql, type Insertable } from "kysely";
 import { hash } from "@/modules/auth/auth.service";
 import { addMinutes } from "date-fns";
+import { AppError } from "@/errors/app.error";
+import { StatusCodes } from "http-status-codes";
 
 export async function createUser(data: Insertable<users>) {
   const result = await db
@@ -17,22 +19,28 @@ export async function createUser(data: Insertable<users>) {
     })
     .onConflict((oc) => {
       return oc.column("github_id").doUpdateSet((eb) => ({
-        avatar_url: eb.ref("excluded.avatar_url"),
-        email: eb.ref("excluded.email"),
-        username: eb.ref("excluded.username"),
-        last_login_at: eb.ref("excluded.last_login_at"),
-        is_active: eb.ref("excluded.is_active"),
-        id: eb.ref("excluded.id"),
-        github_id: eb.ref("excluded.github_id"),
-        created_at: eb.ref("excluded.created_at"),
-        role: eb.ref("excluded.role"),
-        updated_at: eb.ref("excluded.updated_at"),
+        username: eb.ref("users.username"),
+        id: eb.ref("users.id"),
+        role: eb.ref("users.role"),
       }));
     })
     .returning(["username", "role", "id"])
     .executeTakeFirst();
 
   return result;
+}
+
+export async function getUserActiveState(userId: string) {
+  return await db
+    .selectFrom("users")
+    .where("users.id", "=", userId)
+    .select(["is_active"])
+    .executeTakeFirstOrThrow(() => {
+      throw new AppError({
+        message: "User does not exist",
+        code: StatusCodes.NOT_FOUND,
+      });
+    });
 }
 
 export async function rotateToken({
@@ -44,22 +52,24 @@ export async function rotateToken({
   newToken: string;
   userId: string;
 }) {
-  await db.transaction().execute(async (trx) => {
+  return await db.transaction().execute(async (trx) => {
     await trx
       .deleteFrom("refresh_tokens")
       .where("user_id", "=", userId)
       .where("token_hash", "=", hash(oldToken))
       .execute();
 
-    await trx
+    const newRefreshToken = await trx
       .insertInto("refresh_tokens")
       .values({
         token_hash: hash(newToken),
         user_id: userId,
         expires_at: addMinutes(new Date(), 5),
       })
-      .returning(['id'])
+      .returning(["expires_at"])
       .executeTakeFirstOrThrow();
+
+    return { expiresAt: newRefreshToken.expires_at };
   });
 }
 

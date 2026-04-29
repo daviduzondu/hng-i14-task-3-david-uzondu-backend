@@ -8,9 +8,10 @@ import {
 } from "@/modules/profile/profile.repository";
 import { catchAndThrowError, parseSearchQuery } from "@/misc/utils";
 import {
+  exportProfilesSchema,
   profileQuerySchema,
   profileSearchSchema,
-} from "@/schema/profile-query.schema";
+} from "@/schema/profile.schema";
 import type {
   AgifyResponse,
   ErrorResponse,
@@ -23,12 +24,38 @@ import axios from "axios";
 import { StatusCodes } from "http-status-codes";
 import z from "zod";
 import { NoResultError } from "kysely";
+import { json2csv } from "json-2-csv";
+import type { profiles } from "@/db/generated/types";
 
-type StandardServiceResponse = Promise<{
+type StandardServiceResponse<S = SuccessResponse, E = ErrorResponse> = Promise<{
   statusCode: number;
-  body?: SuccessResponse | ErrorResponse;
+  body?: S | E;
 }>;
 
+const totalPages = <T extends { total: string | unknown }[]>({
+  result,
+  limit,
+}: {
+  result: T;
+  limit: number;
+}) => Math.ceil(Number(result[0]?.total ? result[0]?.total : 0) / limit);
+
+const links = <T extends { total: string | unknown }[]>({
+  result,
+  limit,
+  page,
+}: {
+  result: T;
+  page: number;
+  limit: number;
+}) => ({
+  self: `/api/profiles?page=${page}&limit=${limit}`,
+  next:
+    totalPages({ result, limit }) > page
+      ? `/api/profiles?page=${page + 1}&limit=${limit}`
+      : null,
+  prev: page === 1 ? null : `/api/profiles?page=${page - 1}&limit=${limit}`,
+});
 export async function createProfile(name: string): StandardServiceResponse {
   const [genderRes, agifyRes, nationalizeRes]: [
     AxiosResponse<GenderizeResponse>,
@@ -108,6 +135,7 @@ export async function searchProfiles(
   const parsedPayload = z.parse(profileSearchSchema, payload);
   const query = parseSearchQuery(parsedPayload.q);
   const offset = (parsedPayload.page - 1) * Number(parsedPayload.limit);
+
   if (Object.values(query).every((entry) => entry === null))
     return {
       body: {
@@ -129,7 +157,13 @@ export async function searchProfiles(
       // count: result.length,
       page: parsedPayload.page,
       limit: parsedPayload.limit,
-      total: Number(result[0]?.total ? result[0]?.total : 0) ,
+      total: Number(result[0]?.total ? result[0]?.total : 0),
+      total_pages: totalPages({ result, limit: parsedPayload.limit }),
+      links: links({
+        result,
+        limit: parsedPayload.limit,
+        page: parsedPayload.page,
+      }),
       data: result.map((r) => ({
         age: r.age,
         age_group: r.age_group,
@@ -183,13 +217,19 @@ export async function getProfiles(
     body: {
       page: parsedQuery.page,
       limit: parsedQuery.limit,
+      total_pages: totalPages({ result, limit: parsedQuery.limit }),
+      links: links({
+        result,
+        limit: parsedQuery.limit,
+        page: parsedQuery.page,
+      }),
       data: result.map(
         (r) =>
           ({ ...r, updated_at: undefined, total: undefined }) as Partial<
             typeof r
           >,
       ),
-      total: Number(result[0]?.total ? result[0]?.total : 0) ,
+      total: Number(result[0]?.total ? result[0]?.total : 0),
       // total: Number(result[0]?.total ?? 0) ?? 0,
       status: "success",
     },
@@ -207,5 +247,45 @@ export async function deleteProfile(id: string): StandardServiceResponse {
   });
   return {
     statusCode: StatusCodes.NO_CONTENT,
+  };
+}
+
+export async function exportProfile(
+  payload: z.infer<typeof exportProfilesSchema>,
+): StandardServiceResponse<{
+  status: "success";
+  message: string;
+  data: { csv: string };
+}> {
+  const results = await filterProfiles({ ...payload });
+
+  const preferredHeaders = [
+    "id",
+    "name",
+    "gender",
+    "gender_probability",
+    "age",
+    "age_group",
+    "country_id",
+    "country_name",
+    "country_probability",
+    "created_at",
+  ] as (keyof profiles)[];
+
+  return {
+    statusCode: StatusCodes.OK,
+    body: {
+      message: "CSV",
+      data: {
+        csv: json2csv(
+          results.map((result) =>
+            Object.fromEntries(
+              preferredHeaders.map((header) => [header, result[header]]),
+            ),
+          ),
+        ),
+      },
+      status: "success",
+    },
   };
 }
