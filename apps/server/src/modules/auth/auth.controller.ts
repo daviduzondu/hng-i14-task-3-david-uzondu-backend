@@ -14,6 +14,7 @@ export async function getUserDetails(
   if (result.body.status === "success") {
     return res.status(result.statusCode).json({
       ...result.body,
+      ...result.body.data,
     });
   }
 }
@@ -86,7 +87,8 @@ export async function loginUser(
     res.status(result.statusCode).json({
       status: "success",
       message: "Login Successful",
-
+      access_token: result.body.data.access_token,
+      refresh_token: result.body.data.refresh_token,
       role: result.body.data.role,
       username: result.body.data.username,
       data: {
