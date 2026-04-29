@@ -16,6 +16,7 @@ import { authenticate, isActive } from "@/modules/auth/auth.middleware";
 import { requireApiVersion } from "@/modules/profile/profile.middleware";
 import { rateLimit } from "express-rate-limit";
 import { StatusCodes } from "http-status-codes";
+import { getUserDetails } from "@/modules/auth/auth.controller";
 
 const authRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -57,6 +58,7 @@ app.get("/", (_req, res) => {
   res.status(200).send("OK world");
 });
 
+app.get("/api/users/me", authenticate, getUserDetails);
 app.use(
   "/api/profiles",
   otherRateLimit,

@@ -37,8 +37,8 @@ router.get(
   validateSchema(githubCallbackSchema, (req) => req.query),
   authController.loginUser,
 );
-router.get("/me", authenticate, authController.getUserDetails);
-router.post("/refresh", authController.refreshToken);
-router.post("/logout", authController.logout);
+// router.get("/me", authenticate, authController.getUserDetails);
+router.post("/refresh", authenticate, authController.refreshToken);
+router.post("/logout", authenticate, authController.logout);
 
 export default router;
