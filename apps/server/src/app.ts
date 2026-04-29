@@ -21,38 +21,22 @@ import { getUserDetails } from "@/modules/auth/auth.controller";
 const authRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
   limit: 10,
-  ipv6Subnet: 52,
   handler: (_req, _res, _next) => {
     throw new AppError({
       message: "[A] You've been doing that a lot! Take a break!",
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
   },
-  keyGenerator: (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = Array.isArray(forwarded)
-      ? forwarded[0]
-      : forwarded?.split(",")[0];
-    return ip?.trim() || req.ip;
-  },
 });
 
 const otherRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
   limit: 60,
-  ipv6Subnet: 52,
   handler: (_req, _res, _next) => {
     throw new AppError({
       message: "You've been doing that a lot! Take a break!",
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
-  },
-  keyGenerator: (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = Array.isArray(forwarded)
-      ? forwarded[0]
-      : forwarded?.split(",")[0];
-    return ip?.trim() || req.ip;
   },
 });
 

@@ -11,7 +11,13 @@ export async function authenticate(
   _res: Response,
   next: NextFunction,
 ) {
-  const token = req.cookies.access_token;
+  const authHeader = req.headers.authorization;
+
+  const token =
+    req.cookies?.access_token ||
+    (authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : undefined);
 
   if (!token)
     throw new AppError({

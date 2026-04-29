@@ -37,7 +37,7 @@ export function validateSchema(
   };
 }
 
-type Payload = { userId: string; role: Role };
+type Payload = { userId: string; role: Role; id?: string };
 export function generateAccessToken(payload: Payload) {
   return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRES as jwt.SignOptions["expiresIn"],
@@ -145,7 +145,7 @@ export async function catchAndThrowError<T>(
       if (error instanceof map.errorClass) {
         const code =
           map.getCode(error) ?? map.code ?? StatusCodes.INTERNAL_SERVER_ERROR;
-          console.log(code)
+        console.log(code);
 
         throw new AppError({
           message: error.message ?? map.message,

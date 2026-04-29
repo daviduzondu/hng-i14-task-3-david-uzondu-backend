@@ -5,6 +5,8 @@ import * as authController from "@/modules/auth/auth.controller";
 import pkceChallenge from "pkce-challenge";
 import { v4 as uuidv4 } from "uuid";
 import { authenticate } from "@/modules/auth/auth.middleware";
+import { AppError } from "@/errors/app.error";
+import { StatusCodes } from "http-status-codes";
 
 const router: Router = Router();
 
@@ -38,7 +40,27 @@ router.get(
   authController.loginUser,
 );
 // router.get("/me", authenticate, authController.getUserDetails);
-router.post("/refresh", authenticate, authController.refreshToken);
+router.post(
+  "/refresh",
+  (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    const token =
+      (authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7)
+        : undefined) || req.cookies?.access_token;
+
+    if (token) {
+      throw new AppError({
+        message: "Missing access token",
+        code: StatusCodes.UNAUTHORIZED,
+      });
+    }
+
+    next();
+  },
+  authController.refreshToken,
+);
 router.post("/logout", authenticate, authController.logout);
 
 export default router;
