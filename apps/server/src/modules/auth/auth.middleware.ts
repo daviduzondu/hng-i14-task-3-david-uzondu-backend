@@ -11,12 +11,11 @@ export async function authenticate(
   _res: Response,
   next: NextFunction,
 ) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = req.cookies.access_token;
 
   if (!token)
     throw new AppError({
-      message: "Missing Bearer token in authorization header",
+      message: "Missing access token",
       code: StatusCodes.UNAUTHORIZED,
     });
 
@@ -29,7 +28,6 @@ export async function authenticate(
     {
       jwtError: {
         errorClass: jwt.JsonWebTokenError,
-        // code: StatusCodes.BAD_REQUEST,
         getCode(err) {
           if (err instanceof jwt.TokenExpiredError) {
             return StatusCodes.UNAUTHORIZED;
@@ -37,7 +35,7 @@ export async function authenticate(
             return StatusCodes.BAD_REQUEST;
           }
         },
-        message: "Falied to verify token",
+        message: "Failed to verify token",
       },
     },
   );

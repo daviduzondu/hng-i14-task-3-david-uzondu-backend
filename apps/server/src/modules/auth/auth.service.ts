@@ -33,8 +33,35 @@ type StandardServiceResponse<S = SuccessResponse, E = ErrorResponse> = Promise<{
 export const hash = (token: string) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-export async function createUser(
-  payload: z.infer<typeof githubCallbackSchema>,
+export async function getUserDetails(userId: string): StandardServiceResponse<{
+  status: "success";
+  message: string;
+  data: {
+    username: string;
+    role: "admin" | "analyst";
+    id: string;
+    is_active: boolean;
+    avatar_url: string;
+  };
+}> {
+  const result = await authRepository.getUserDetails(userId);
+  return {
+    statusCode: StatusCodes.OK,
+    body: {
+      status: "success",
+      message: "User details retrieved successfull",
+      data: {
+        is_active: result.is_active,
+        id: result.id,
+        role: result.role,
+        username: result.username,
+        avatar_url: result.avatar_url,
+      },
+    },
+  };
+}
+export async function loginUser(
+  payload: z.infer<typeof githubCallbackSchema> & { client: "cli" | "browser" },
 ): StandardServiceResponse<{
   status: "success";
   message: string;
@@ -51,10 +78,16 @@ export async function createUser(
       (await axios.post(
         "https://github.com/login/oauth/access_token",
         {
-          client_id: process.env.GITHUB_OAUTH_CLIENT_ID,
-          client_secret: process.env.GITHUB_OAUTH_CLIENT_SECRET,
+          client_id:
+            payload.client === "cli"
+              ? process.env.GITHUB_OAUTH_CLI_CLIENT_ID
+              : process.env.GITHUB_OAUTH_BROWSER_CLIENT_ID,
+          client_secret:
+            payload.client === "cli"
+              ? process.env.GITHUB_OAUTH_CLI_CLIENT_SECRET
+              : process.env.GITHUB_OAUTH_BROWSER_CLIENT_SECRET,
           code: payload.code,
-          redirect_uri: `http://127.0.0.1:${process.env.PORT}/callback`,
+          redirect_uri: `${payload.client === "cli" ? process.env.CLI_CALLBACK_URL : process.env.FRONTEND_URL}/auth/github/callback`,
           code_verifier: payload.code_verifier,
         },
         {
@@ -79,7 +112,6 @@ export async function createUser(
       },
     },
   );
-
 
   const accessToken = tokenRequest.data.access_token;
 

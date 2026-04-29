@@ -23,7 +23,7 @@ const authRateLimit = rateLimit({
   ipv6Subnet: 52,
   handler: (_req, _res, _next) => {
     throw new AppError({
-      message: "You've been doing that a lot! Take a break!",
+      message: "[A] You've been doing that a lot! Take a break!",
       code: StatusCodes.TOO_MANY_REQUESTS,
     });
   },
@@ -42,12 +42,13 @@ const otherRateLimit = rateLimit({
 });
 
 const app: Express = express();
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN,
-    methods: ["GET", "POST", "OPTIONS"],
-  }),
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (curl, bots, server-to-server)
+    callback(null, origin || "*");
+  },
+  credentials: true,
+}));
 
 app.use(cookieParser());
 app.use(express.json());
