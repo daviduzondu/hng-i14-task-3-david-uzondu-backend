@@ -11,7 +11,14 @@ export async function authenticate(
   _res: Response,
   next: NextFunction,
 ) {
-  const token = req.cookies.access_token;
+  // Accept Bearer token from Authorization header OR access_token cookie
+  const authHeader = req.headers.authorization;
+  let token: string | undefined;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
+    token = req.cookies?.access_token;
+  }
 
   if (!token)
     throw new AppError({
@@ -21,7 +28,7 @@ export async function authenticate(
 
   return await catchAndThrowError(
     async () => {
-      const decoded = verifyAccessToken(token);
+      const decoded = verifyAccessToken(token!);
       req.user = decoded;
       return next();
     },
@@ -32,10 +39,10 @@ export async function authenticate(
           if (err instanceof jwt.TokenExpiredError) {
             return StatusCodes.UNAUTHORIZED;
           } else {
-            return StatusCodes.BAD_REQUEST;
+            return StatusCodes.UNAUTHORIZED;
           }
         },
-        message: "Failed to verify token",
+        message: "Invalid or expired token",
       },
     },
   );
@@ -48,7 +55,6 @@ export function authorize(roles: Role[]) {
     next: NextFunction,
   ) => {
     if (!roles.includes(req.user?.role)) {
-      console.log(roles);
       throw new AppError({
         message: "Insufficient permissions. You must be signed in as an admin",
         code: StatusCodes.FORBIDDEN,

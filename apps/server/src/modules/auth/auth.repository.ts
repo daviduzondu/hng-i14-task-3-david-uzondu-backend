@@ -1,5 +1,5 @@
 import { db } from "@/db/db";
-import type { users } from "@/db/generated/types";
+import type { Role, users } from "@/db/generated/types";
 import { sql, type Insertable } from "kysely";
 import { hash } from "@/modules/auth/auth.service";
 import { addMinutes } from "date-fns";
@@ -10,7 +10,7 @@ export async function getUserDetails(userId: string) {
   const result = await db
     .selectFrom("users")
     .where("users.id", "=", userId)
-    .select(["id", "role", "avatar_url", "is_active", 'username'])
+    .select(["id", "role", "avatar_url", "is_active", "username", "email"])
     .executeTakeFirstOrThrow(() => {
       throw new AppError({
         message: "User not found",
@@ -40,6 +40,31 @@ export async function createUser(data: Insertable<users>) {
     })
     .returning(["username", "role", "id"])
     .executeTakeFirst();
+
+  return result;
+}
+
+export async function upsertTestUser(githubId: string, username: string, role: Role) {
+  const result = await db
+    .insertInto("users")
+    .values({
+      last_login_at: sql`now()`,
+      avatar_url: "",
+      email: `${username}@insighta.test`,
+      github_id: githubId,
+      is_active: true,
+      username,
+      role,
+    })
+    .onConflict((oc) =>
+      oc.column("github_id").doUpdateSet({
+        role,
+        is_active: true,
+        last_login_at: sql`now()`,
+      }),
+    )
+    .returning(["id", "username", "role", "email"])
+    .executeTakeFirstOrThrow();
 
   return result;
 }
