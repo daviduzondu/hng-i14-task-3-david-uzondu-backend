@@ -35,6 +35,7 @@ export async function loginUser(
       httpOnly: true,
       path: "/auth/refresh",
       secure: isProduction,
+      domain: isProduction ? process.env.FRONTEND_URL : undefined
     });
     res.cookie("access_token", result.body.data.access_token, {
       httpOnly: true,
@@ -45,6 +46,7 @@ export async function loginUser(
           1000 -
         Date.now(),
       path: "/",
+      domain: isProduction ? process.env.FRONTEND_URL : undefined
     });
     res.status(result.statusCode).json({
       status: "success",
@@ -70,6 +72,7 @@ export async function refreshToken(req: Request, res: Response) {
       .json({ status: "error", message: "No refresh token" });
 
   const result = await authService.refreshToken(token);
+  const isProduction = process.env.NODE_ENV === "production";
   if (result.body.status === "success") {
     res.cookie("refresh_token", result.body.data.refresh_token, {
       maxAge: new Date(result.body.data.expiresAt).getTime(),
@@ -77,6 +80,8 @@ export async function refreshToken(req: Request, res: Response) {
       httpOnly: true,
       path: "/auth/refresh",
       secure: process.env.NODE_ENV === "production",
+      domain: isProduction ? process.env.FRONTEND_URL : undefined
+
     });
     res.status(result.statusCode).json({
       status: "success",

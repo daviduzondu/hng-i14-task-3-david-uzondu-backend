@@ -1,4 +1,4 @@
-# HNG i14 Stage 2 Backend Task — Intelligence Query Engine
+# Insighta Labs+ — Secure Multi-Interface Intelligence Platform
 
 A production-grade Express API that enriches names using external prediction services (Genderize, Agify, Nationalize), stores structured demographic profile data in a database, and exposes a **queryable intelligence engine** for filtering, sorting, paginating, and searching profiles using both structured parameters and natural language.
 
@@ -6,16 +6,20 @@ Built for Insighta Labs — a demographic intelligence company whose clients (ma
 
 ---
 
-## What's new in Stage 2
+## Stage 3 — Secure Access & Multi-Interface Integration
 
-Stage 1 covered basic profile creation and deduplication. Stage 2 upgrades the system into a **Queryable Intelligence Engine**:
+Stage 2 built the Queryable Intelligence Engine. **Stage 3 transforms it into a secure, multi-interface platform** for real teams:
 
-- Advanced multi-condition filtering on all profile fields
-- Sorting by age, creation date, or gender probability
-- Cursor-based pagination with configurable limits
-- A **natural language query engine** that converts plain English into structured filters — built entirely with rule-based parsing (no LLMs)
-- A seeded database of 2026 profiles, safe to re-run without duplicates
-- Strict query validation with structured error responses
+- **Authentication** — GitHub OAuth with PKCE flow
+- **Role-based access control** — Admin and Analyst roles
+- **Secure token management** — Access + refresh tokens with auto-refresh
+- **CLI tool** — Full command-line interface for all operations
+- **Web portal** — Browser-based UI with HTTP-only cookies
+- **API versioning** — All profile endpoints require `X-API-Version: 1`
+- **Enhanced pagination** — Now includes `total_pages` and `links`
+- **CSV export** — Export filtered profiles to CSV
+- **Rate limiting** — Per-endpoint, per-user limits
+- **Comprehensive logging** — Request method, endpoint, status, response time
 
 ---
 
@@ -182,6 +186,12 @@ GET /api/profiles?min_gender_probability=0.9&min_country_probability=0.8
   "page": 1,
   "limit": 10,
   "total": 2026,
+  "total_pages": 203,
+  "links": {
+    "self": "/api/profiles?page=1&limit=10",
+    "next": "/api/profiles?page=2&limit=10",
+    "prev": null
+  },
   "data": [
     {
       "id": "01957a3e-3b2c-7e4f-a1b2-c3d4e5f60001",
@@ -546,4 +556,370 @@ CORS_ORIGIN=*
 NODE_ENV=development
 PORT=3000
 DATABASE_URL=your_database_url_here
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+JWT_SECRET=your_jwt_secret
+CLI_PORT=3456
 ```
+
+---
+
+## Stage 3 — Authentication System
+
+### Overview
+
+Insighta Labs+ implements GitHub OAuth with PKCE (Proof Key for Code Exchange) for secure authentication across all interfaces (API, CLI, Web Portal).
+
+### Authentication Endpoints
+
+#### GET /auth/github
+
+Redirects the user to GitHub's OAuth authorization page.
+
+**Response:** `302 Found` → GitHub OAuth URL
+
+#### GET /auth/github/callback
+
+Handles the OAuth callback from GitHub. Creates or retrieves the user and issues access/refresh tokens.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `code` | string | Authorization code from GitHub |
+| `state` | string | State parameter for request validation |
+| `code_verifier` | string | PKCE code verifier |
+
+**Success Response:**
+```json
+{
+  "status": "success",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "uuid",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "role": "analyst"
+  }
+}
+```
+
+#### POST /auth/refresh
+
+Refreshes an expired access token using a valid refresh token.
+
+**Request:**
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Success Response:**
+```json
+{
+  "status": "success",
+  "access_token": "new_access_token",
+  "refresh_token": "new_refresh_token"
+}
+```
+
+> **Note:** The old refresh token is immediately invalidated after use. Each refresh issues a new pair.
+
+#### POST /auth/logout
+
+Invalidates the current refresh token server-side.
+
+**Request:**
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Success Response:**
+```json
+{
+  "status": "success",
+  "message": "Logged out successfully"
+}
+```
+
+### Token Expiry
+
+| Token | Expiry |
+|-------|--------|
+| Access token | 3 minutes |
+| Refresh token | 5 minutes |
+
+---
+
+## Stage 3 — User System & Roles
+
+### Users Table
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | UUID v7 | Primary key |
+| `github_id` | VARCHAR | Unique GitHub user ID |
+| `username` | VARCHAR | GitHub username |
+| `email` | VARCHAR | User email |
+| `avatar_url` | VARCHAR | Profile image URL |
+| `role` | VARCHAR | `admin` or `analyst` |
+| `is_active` | BOOLEAN | If false → 403 Forbidden on all requests |
+| `last_login_at` | TIMESTAMP | Last login timestamp |
+| `created_at` | TIMESTAMP | Account creation timestamp |
+
+### Roles
+
+| Role | Permissions |
+|------|-------------|
+| `admin` | Full access: create, read, delete profiles, query |
+| `analyst` | Read-only: can only read and search |
+
+**Default role:** `analyst`
+
+---
+
+## Stage 3 — API Versioning
+
+All profile-related endpoints require the `X-API-Version: 1` header.
+
+**Request without header:**
+```json
+{
+  "status": "error",
+  "message": "API version header required"
+}
+```
+**Status:** 400 Bad Request
+
+---
+
+## Stage 3 — New Profile Endpoints
+
+### POST /api/profiles (Admin Only)
+
+Creates a profile by fetching data from external APIs.
+
+**Request:**
+```json
+{
+  "name": "Harriet Tubman"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "uuid",
+    "name": "Harriet Tubman",
+    "gender": "female",
+    "gender_probability": 0.97,
+    "age": 28,
+    "age_group": "adult",
+    "country_id": "US",
+    "country_name": "United States",
+    "country_probability": 0.89,
+    "created_at": "timestamp"
+  }
+}
+```
+
+### GET /api/profiles/export
+
+Exports profiles as a CSV file.
+
+**Query Parameters:**
+All filter parameters from `GET /api/profiles` are supported.
+
+**Query:**
+```
+GET /api/profiles/export?format=csv&gender=male&country_id=NG
+```
+
+**Response:**
+```
+200 OK
+Content-Type: text/csv
+Content-Disposition: attachment; filename="profiles_2026-04-29T10-00-00.csv"
+
+id,name,gender,gender_probability,age,age_group,country_id,country_name,country_probability,created_at
+uuid1,John Doe,male,0.99,25,adult,NG,Nigeria,0.91,2026-04-22T10:00:00.000Z
+```
+
+---
+
+## Stage 3 — Access Control
+
+All `/api/*` endpoints must:
+1. Require authentication (valid access token)
+2. Enforce role permissions:
+   - **Admin:** can perform all operations (create, read, delete, search, export)
+   - **Analyst:** can only read and search
+
+**Forbidden Response (403):**
+```json
+{
+  "status": "error",
+  "message": "Access denied"
+}
+```
+
+---
+
+## Stage 3 — Rate Limiting & Logging
+
+### Rate Limiting
+
+| Scope | Limit |
+|-------|-------|
+| Auth endpoints (`/auth/*`) | 10 requests / minute |
+| All other endpoints | 60 requests / minute per user |
+
+**Response when exceeded:**
+```json
+{
+  "status": "error",
+  "message": "Too many requests"
+}
+```
+**Status:** 429 Too Many Requests
+
+### Logging
+
+Every request is logged with:
+- HTTP method
+- Endpoint path
+- Status code
+- Response time (ms)
+
+---
+
+## Stage 3 — CLI Tool
+
+### Installation
+
+```bash
+npm install -g insighta-cli
+```
+
+### Authentication Commands
+
+```bash
+insighta login      # Start OAuth flow
+insighta logout    # Clear stored tokens
+insighta whoami    # Display current user
+```
+
+### Profile Commands
+
+```bash
+# List profiles with filters
+insighta profiles list
+insighta profiles list --gender male
+insighta profiles list --country NG --age-group adult
+insighta profiles list --min-age 25 --max-age 40
+insighta profiles list --sort-by age --order desc
+insighta profiles list --page 2 --limit 20
+
+# Get single profile
+insighta profiles get <id>
+
+# Search profiles
+insighta profiles search "young males from nigeria"
+
+# Create profile (Admin only)
+insighta profiles create --name "Harriet Tubman"
+
+# Export profiles to CSV
+insighta profiles export --format csv
+insighta profiles export --format csv --gender male --country NG
+```
+
+### Token Handling
+
+- Tokens are stored in `~/.insighta/credentials.json`
+- CLI automatically refreshes expired access tokens
+- If refresh fails, prompts user to re-login
+
+---
+
+## Stage 3 — Web Portal
+
+### Required Pages
+
+1. **Login** — GitHub OAuth flow
+2. **Dashboard** — Basic metrics overview
+3. **Profiles List** — Filters + pagination
+4. **Profile Detail** — Single profile view
+5. **Search** — Natural language search
+6. **Account** — User profile and settings
+
+### Authentication (Web Portal)
+
+- Uses HTTP-only cookies for session management
+- Tokens are not accessible via JavaScript
+- CSRF protection enabled
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Insighta Labs+                          │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   CLI Tool  │  │  Web Portal │  │  API Client │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         │                │                │                 │
+│         └────────────────┼────────────────┘                 │
+│                          ▼                                   │
+│              ┌─────────────────────┐                         │
+│              │   Backend API       │                         │
+│              │   (Express/Node)    │                         │
+│              └──────────┬──────────┘                         │
+│                         │                                    │
+│         ┌───────────────┼───────────────┐                    │
+│         ▼               ▼               ▼                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
+│  │  GitHub    │  │  External  │  │  Database   │            │
+│  │  OAuth     │  │  APIs      │  │  (Postgres) │            │
+│  └────────────┘  └────────────┘  └────────────┘            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Authentication Flow
+
+1. User initiates login (CLI or Web)
+2. Backend generates `state` and `code_verifier` (PKCE)
+3. User is redirected to GitHub OAuth
+4. GitHub redirects back with authorization code
+5. Backend exchanges code for user info
+6. Backend issues access + refresh tokens
+7. CLI stores tokens; Web uses HTTP-only cookies
+
+### Role Enforcement Logic
+
+```
+Request → Auth Middleware → Role Middleware → Handler
+                            │
+                            ▼
+                  ┌─────────────────┐
+                  │ Check: is_active│
+                  │ Check: role     │
+                  └─────────────────┘
+```
+
+### Natural Language Parsing Approach
+
+The search endpoint uses a **rule-based parser** (no LLMs):
+1. Input string is lowercased and tokenized
+2. Pattern rules are matched against tokens
+3. Extracted filters are combined into a filter object
+4. Filter object is applied to database query
+
+See "Natural language query engine" section for full details.

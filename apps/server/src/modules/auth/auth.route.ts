@@ -12,6 +12,7 @@ router.get("/github", async (req, res) => {
   const pkce = await pkceChallenge();
   const state = uuidv4();
   const githubUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_OAUTH_BROWSER_CLIENT_ID}&redirect_uri=${process.env.FRONTEND_URL}/auth/github/callback&state=${state}&code_challenge=${pkce.code_challenge}&code_challenge_method=${pkce.code_challenge_method}&scope=read:user,user:email`;
+  const isProduction = process.env.NODE_ENV === "production";
 
   res.cookie("oauth_code_verifier", pkce.code_verifier, {
     httpOnly: false,
@@ -19,6 +20,7 @@ router.get("/github", async (req, res) => {
     sameSite: "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
+    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.cookie("oauth_state", state, {
@@ -27,6 +29,7 @@ router.get("/github", async (req, res) => {
     sameSite: "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
+    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.redirect(githubUrl);
