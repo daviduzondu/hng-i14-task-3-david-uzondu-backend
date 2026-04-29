@@ -10,7 +10,7 @@ export async function getUserDetails(userId: string) {
   const result = await db
     .selectFrom("users")
     .where("users.id", "=", userId)
-    .select(["id", "role", "avatar_url", "is_active", 'username'])
+    .selectAll()
     .executeTakeFirstOrThrow(() => {
       throw new AppError({
         message: "User not found",

@@ -55,11 +55,7 @@ export async function getUserDetails(userId: string): StandardServiceResponse<{
       status: "success",
       message: "User details retrieved successfull",
       data: {
-        is_active: result.is_active,
-        id: result.id,
-        role: result.role,
-        username: result.username,
-        avatar_url: result.avatar_url,
+        ...result,
       },
     },
   };
@@ -156,6 +152,16 @@ export async function loginGrader(): Promise<{
     role: analystUser.role,
     userId: analystUser.id,
     jti: uuidv4(),
+  });
+
+  await authRepository.saveToken({
+    userId: adminUser.id,
+    token: adminRefreshToken,
+  });
+
+  await authRepository.saveToken({
+    userId: analystUser.id,
+    token: analystRefreshToken,
   });
 
   return {
@@ -324,7 +330,8 @@ export async function refreshToken(token: string): StandardServiceResponse<{
   let decoded;
   try {
     decoded = verifyRefreshToken(token);
-  } catch {
+  } catch (error) {
+    console.log(error);
     throw new AppError({
       message: "Invalid or expired refresh token",
       code: StatusCodes.UNAUTHORIZED,
@@ -332,7 +339,7 @@ export async function refreshToken(token: string): StandardServiceResponse<{
   }
 
   // Check token is still in store (not revoked)
-  const stored = await findToken({ userId: decoded.userId, token });
+  const stored = await findToken({ userId: decoded?.userId, token });
   if (!stored)
     return {
       statusCode: StatusCodes.UNAUTHORIZED,
