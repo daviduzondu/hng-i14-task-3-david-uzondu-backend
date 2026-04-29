@@ -1,6 +1,6 @@
 import z from "zod";
 
-const CODE_VERIFIER_LENGTH = 43; // PKCE standard min length
+const CODE_VERIFIER_LENGTH = 43; 
 
 export const githubCallbackSchema = z.object({
   code: z.string().refine((val) => !val.toLowerCase().includes("bad"), {
