@@ -20,7 +20,6 @@ router.get("/github", async (req, res) => {
     sameSite: "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
-    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.cookie("oauth_state", state, {
@@ -29,7 +28,6 @@ router.get("/github", async (req, res) => {
     sameSite: "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
-    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.redirect(githubUrl);
