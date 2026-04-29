@@ -14,8 +14,6 @@ import { AppError } from "@/errors/app.error";
 import cookieParser from "cookie-parser";
 import { authenticate, isActive } from "@/modules/auth/auth.middleware";
 import { requireApiVersion } from "@/modules/profile/profile.middleware";
-import { rateLimit } from "express-rate-limit";
-import { StatusCodes } from "http-status-codes";
 import { getUserDetails } from "@/modules/auth/auth.controller";
 import { rateLimiterMiddleware } from "@/misc/utils";
 import {
@@ -33,28 +31,6 @@ const createRateLimiter = (options: IRateLimiterOptions) =>
     dbName: "hngtask1",
     storeClient: pool,
   });
-
-const authRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  limit: 10,
-  handler: (_req, _res, _next) => {
-    throw new AppError({
-      message: "[A] You've been doing that a lot! Take a break!",
-      code: StatusCodes.TOO_MANY_REQUESTS,
-    });
-  },
-});
-
-const otherRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  limit: 60,
-  handler: (_req, _res, _next) => {
-    throw new AppError({
-      message: "You've been doing that a lot! Take a break!",
-      code: StatusCodes.TOO_MANY_REQUESTS,
-    });
-  },
-});
 
 const app: Express = express();
 app.use(
@@ -89,6 +65,7 @@ app.use(
   isActive,
   profileRoutes,
 );
+
 app.use(
   "/auth",
   rateLimiterMiddleware(
@@ -98,7 +75,6 @@ app.use(
       points: 10,
     }),
   ),
-  authRateLimit,
   authRoutes,
 );
 
