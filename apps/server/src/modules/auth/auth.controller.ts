@@ -70,7 +70,7 @@ export async function loginUser(
       maxAge: new Date(result.body.data.expiresAt).getTime(),
       sameSite: isProduction ? "none" : "lax",
       httpOnly: true,
-      path: "/auth/refresh",
+      path: "/",
       secure: isProduction,
     });
     res.cookie("access_token", result.body.data.access_token, {
@@ -104,7 +104,8 @@ export async function loginUser(
 }
 
 export async function refreshToken(req: Request, res: Response) {
-  const token = req.body.refresh_token;
+  const token = req.body?.refresh_token?.trim() || req.cookies?.refresh_token;
+
   if (!token)
     return res
       .status(StatusCodes.UNAUTHORIZED)
@@ -148,7 +149,7 @@ export async function refreshToken(req: Request, res: Response) {
       maxAge: new Date(result.body.data.expiresAt).getTime(),
       sameSite: "strict",
       httpOnly: true,
-      path: "/auth/refresh",
+      path: "/",
       secure: process.env.NODE_ENV === "production",
     });
     res.status(result.statusCode).json({
@@ -179,7 +180,7 @@ export async function logout(req: Request, res: Response) {
   if (token) {
     await authService.logout(token);
   }
-  res.clearCookie("refresh_token", { path: "/auth/refresh" });
+  res.clearCookie("refresh_token", { path: "/" });
   res.status(StatusCodes.OK).json({
     status: "success",
     message: "Log out successful",

@@ -10,6 +10,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   makeGitHubHeaders,
+  verifyAccessToken,
   verifyRefreshToken,
 } from "@/misc/utils";
 import type { githubCallbackSchema } from "@/schema/auth.schema";
@@ -371,7 +372,7 @@ export async function refreshToken(token: string): StandardServiceResponse<{
 }
 
 export async function logout(token: string) {
-  const decoded = verifyRefreshToken(token);
+  const decoded = verifyAccessToken(token);
   try {
     return await revokeToken({
       userId: decoded.userId,
