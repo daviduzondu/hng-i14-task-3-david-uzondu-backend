@@ -72,6 +72,7 @@ export async function loginGrader(): Promise<{
     username: string;
     userId: string;
     id: string;
+    email: string;
   };
   analyst: {
     access_token: string;
@@ -80,6 +81,7 @@ export async function loginGrader(): Promise<{
     username: string;
     userId: string;
     id: string;
+    email: string;
   };
 }> {
   const users = [
@@ -115,7 +117,7 @@ export async function loginGrader(): Promise<{
   // fetch inserted users so we get IDs
   const insertedUsers = await db
     .selectFrom("users")
-    .select(["id", "role"])
+    .select(["id", "role", "username", "email"])
     .where("github_id", "in", ["hng-admin-1", "hng-analyst-1"])
     .execute();
 
@@ -163,6 +165,7 @@ export async function loginGrader(): Promise<{
       role: adminUser.role,
       username: "hngadmin",
       userId: adminUser.id,
+      email: adminUser.email,
     },
     analyst: {
       access_token: analystAccessToken,
@@ -171,6 +174,7 @@ export async function loginGrader(): Promise<{
       role: analystUser.role,
       username: "hnganalyst",
       userId: analystUser.id,
+      email: analystUser.email,
     },
   };
 }

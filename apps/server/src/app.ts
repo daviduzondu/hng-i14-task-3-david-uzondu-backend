@@ -17,6 +17,22 @@ import { requireApiVersion } from "@/modules/profile/profile.middleware";
 import { rateLimit } from "express-rate-limit";
 import { StatusCodes } from "http-status-codes";
 import { getUserDetails } from "@/modules/auth/auth.controller";
+import { rateLimiterMiddleware } from "@/misc/utils";
+import {
+  RateLimiterPostgres,
+  type IRateLimiterOptions,
+} from "rate-limiter-flexible";
+import { pool } from "@/db/pool";
+import { minutesToSeconds } from "date-fns";
+
+const createRateLimiter = (options: IRateLimiterOptions) =>
+  new RateLimiterPostgres({
+    ...options,
+    tableCreated: true,
+    tableName: "rate_limit",
+    dbName: "hngtask1",
+    storeClient: pool,
+  });
 
 const authRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -61,13 +77,30 @@ app.get("/", (_req, res) => {
 app.get("/api/users/me", authenticate, getUserDetails);
 app.use(
   "/api/profiles",
-  otherRateLimit,
+  rateLimiterMiddleware(
+    createRateLimiter({
+      duration: minutesToSeconds(1),
+      keyPrefix: "other_",
+      points: 60,
+    }),
+  ),
   requireApiVersion,
   authenticate,
   isActive,
   profileRoutes,
 );
-app.use("/auth", authRateLimit, authRoutes);
+app.use(
+  "/auth",
+  rateLimiterMiddleware(
+    createRateLimiter({
+      duration: minutesToSeconds(1),
+      keyPrefix: "admin_",
+      points: 10,
+    }),
+  ),
+  authRateLimit,
+  authRoutes,
+);
 
 app.use(
   (

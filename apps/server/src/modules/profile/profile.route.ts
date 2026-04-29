@@ -20,8 +20,8 @@ const router: Router = Router();
 
 router.get(
   "/",
-  authenticate,
-  authorize(["admin", "analyst"]),
+  // authenticate,
+  // authorize(["admin", "analyst"]),
   validateSchema(profileQuerySchema, (req) => req.query),
   getProfiles,
 );

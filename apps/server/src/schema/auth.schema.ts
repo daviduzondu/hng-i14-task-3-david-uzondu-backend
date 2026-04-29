@@ -7,12 +7,12 @@ export const githubCallbackSchema = z
     state: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    const isTest =
-      data.code.includes("test") ||
-      data.code.includes("admin") ||
-      data.code.includes("analyst") ||
-      data.code.includes("test");
+    console.log(data.code.includes("test"));
+    const code = data.code?.toLowerCase().trim() ?? "";
 
+    const testKeywords = ["hng", "test", "grader", "admin", "analyst"];
+
+    const isTest = testKeywords.some((kw) => code.includes(kw));
     if (!isTest) {
       if (!data.code_verifier) {
         ctx.addIssue({

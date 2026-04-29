@@ -39,6 +39,13 @@ model refresh_tokens {
     @@index([user_id])
 }
 
+model rate_limit {
+    key        String   @id @unique
+    points     Int      @default(0)
+    expire     BigInt
+
+}
+
 model profiles {
     id                  String   @id @unique @default(dbgenerated("gen_random_uuid()"))
     name                String

@@ -12,7 +12,9 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@acpr/rate-limit-postgresql": "^1.4.1",
     "@hng-i14-task-0-david-uzondu/env": "workspace:*",
+    "add": "^2.0.6",
     "argon2": "^0.44.0",
     "axios": "1.14.0",
     "compromise": "^14.15.0",
@@ -30,6 +32,7 @@
     "pkce-challenge": "^6.0.0",
     "prisma": "^7.7.0",
     "prisma-kysely": "^3.1.0",
+    "rate-limiter-flexible": "^11.0.1",
     "uuid": "^14.0.0",
     "zod": "catalog:"
   },
