@@ -17,19 +17,17 @@ router.get("/github", async (req, res) => {
   res.cookie("oauth_code_verifier", pkce.code_verifier, {
     httpOnly: false,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
-    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.cookie("oauth_state", state, {
     httpOnly: false,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 10 * 60 * 1000,
     path: "/auth/github/callback",
-    domain: isProduction ? process.env.FRONTEND_URL : undefined,
   });
 
   res.redirect(githubUrl);
