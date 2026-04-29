@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import type { Role } from "@/db/generated/types";
 import { StatusCodes } from "http-status-codes";
 import type { Request, Response, NextFunction } from "express";
+import type { RateLimiterAbstract } from "rate-limiter-flexible";
 
 //  res.cookie('refreshToken', token, {
 //     httpOnly: true,         // So JS would not be able to read this cookie
@@ -17,6 +18,21 @@ import type { Request, Response, NextFunction } from "express";
 //     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 //     path: '/auth/refresh',
 //   })
+
+export const rateLimiterMiddleware =
+  (rateLimiter: RateLimiterAbstract) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    rateLimiter
+      .consume(req.ip)
+      .then(() => {
+        next();
+      })
+      .catch((err) => {
+        res
+          .status(StatusCodes.TOO_MANY_REQUESTS)
+          .json({ status: "error", message: "Too Many Requests" });
+      });
+  };
 
 export function validateSchema(
   schema: z.ZodType,
@@ -37,7 +53,7 @@ export function validateSchema(
   };
 }
 
-type Payload = { userId: string; role: Role };
+type Payload = { userId: string; role: Role; id?: string };
 export function generateAccessToken(payload: Payload) {
   return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRES as jwt.SignOptions["expiresIn"],
@@ -145,7 +161,7 @@ export async function catchAndThrowError<T>(
       if (error instanceof map.errorClass) {
         const code =
           map.getCode(error) ?? map.code ?? StatusCodes.INTERNAL_SERVER_ERROR;
-          console.log(code)
+        console.log(code);
 
         throw new AppError({
           message: error.message ?? map.message,

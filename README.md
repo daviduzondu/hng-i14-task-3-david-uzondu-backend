@@ -125,12 +125,12 @@ Content-Type: application/json
 }
 ```
 
-#### 409 Conflict — profile already exists
+#### 200 OK — profile already exists
 
 ```json
 {
   "status": "success",
-  "message": "Profile already exists",
+  "message": "Profle already exists",
   "data": {
     "id": "01957a3e-3b2c-7e4f-a1b2-c3d4e5f60001",
     "name": "alex",
@@ -235,7 +235,7 @@ GET /api/profiles/search?q=teenagers from kenya sorted by age descending
 
 Same structure as `GET /api/profiles`.
 
-#### Uninterpretable query
+#### 400 Bad Request — uninterpretable query
 
 ```json
 {

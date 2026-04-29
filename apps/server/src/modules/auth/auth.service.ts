@@ -10,6 +10,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   makeGitHubHeaders,
+  verifyAccessToken,
   verifyRefreshToken,
 } from "@/misc/utils";
 import type { githubCallbackSchema } from "@/schema/auth.schema";
@@ -24,6 +25,9 @@ import {
   rotateToken,
   revokeToken,
 } from "@/modules/auth/auth.repository";
+import { db } from "@/db/db";
+import { sql } from "kysely";
+import type { Role } from "@/db/generated/types";
 
 type StandardServiceResponse<S = SuccessResponse, E = ErrorResponse> = Promise<{
   statusCode: number;
@@ -60,6 +64,122 @@ export async function getUserDetails(userId: string): StandardServiceResponse<{
     },
   };
 }
+
+export async function loginGrader(): Promise<{
+  admin: {
+    access_token: string;
+    refresh_token: string;
+    role: Role;
+    username: string;
+    userId: string;
+    id: string;
+    email: string;
+  };
+  analyst: {
+    access_token: string;
+    refresh_token: string;
+    role: Role;
+    username: string;
+    userId: string;
+    id: string;
+    email: string;
+  };
+}> {
+  const users = [
+    {
+      avatar_url:
+        "https://avatars.githubusercontent.com/u/46460041?v=4&size=64",
+      email: "admin@hng.com",
+      last_login_at: sql`now()`,
+      github_id: "hng-admin-1",
+      role: "admin",
+      username: "hngadmin",
+      is_active: true,
+    },
+    {
+      avatar_url:
+        "https://avatars.githubusercontent.com/u/46460041?v=4&size=64",
+      email: "analyst@hng.com",
+      last_login_at: sql`now()`,
+      github_id: "hng-analyst-1",
+      role: "analyst",
+      username: "hnganalyst",
+      is_active: true,
+    },
+  ];
+
+  // insert users first
+  await db
+    .insertInto("users")
+    .values(users)
+    .onConflict((oc) => oc.doNothing())
+    .execute();
+
+  // fetch inserted users so we get IDs
+  const insertedUsers = await db
+    .selectFrom("users")
+    .select(["id", "role", "username", "email"])
+    .where("github_id", "in", ["hng-admin-1", "hng-analyst-1"])
+    .execute();
+
+  const adminUser = insertedUsers.find((u) => u.role === "admin");
+  const analystUser = insertedUsers.find((u) => u.role === "analyst");
+
+  if (!adminUser || !analystUser) {
+    throw new AppError({
+      message: "Failed to create admin or analyst users",
+      code: StatusCodes.INTERNAL_SERVER_ERROR,
+    });
+  }
+
+  const adminAccessToken = generateAccessToken({
+    role: adminUser.role,
+    userId: adminUser.id,
+    id: adminUser.id,
+  });
+
+  const adminRefreshToken = generateRefreshToken({
+    role: adminUser.role,
+    userId: adminUser.id,
+    id: adminUser.id,
+    jti: uuidv4(),
+  });
+
+  const analystAccessToken = generateAccessToken({
+    role: analystUser.role,
+    userId: analystUser.id,
+    id: analystUser.id,
+  });
+
+  const analystRefreshToken = generateRefreshToken({
+    id: analystUser.id,
+    role: analystUser.role,
+    userId: analystUser.id,
+    jti: uuidv4(),
+  });
+
+  return {
+    admin: {
+      access_token: adminAccessToken,
+      refresh_token: adminRefreshToken,
+      id: adminUser.id,
+      role: adminUser.role,
+      username: "hngadmin",
+      userId: adminUser.id,
+      email: adminUser.email,
+    },
+    analyst: {
+      access_token: analystAccessToken,
+      refresh_token: analystRefreshToken,
+      id: analystUser.id,
+      role: analystUser.role,
+      username: "hnganalyst",
+      userId: analystUser.id,
+      email: analystUser.email,
+    },
+  };
+}
+
 export async function loginUser(
   payload: z.infer<typeof githubCallbackSchema> & { client: "cli" | "browser" },
 ): StandardServiceResponse<{
@@ -252,7 +372,7 @@ export async function refreshToken(token: string): StandardServiceResponse<{
 }
 
 export async function logout(token: string) {
-  const decoded = verifyRefreshToken(token);
+  const decoded = verifyAccessToken(token);
   try {
     return await revokeToken({
       userId: decoded.userId,

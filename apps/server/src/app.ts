@@ -14,47 +14,23 @@ import { AppError } from "@/errors/app.error";
 import cookieParser from "cookie-parser";
 import { authenticate, isActive } from "@/modules/auth/auth.middleware";
 import { requireApiVersion } from "@/modules/profile/profile.middleware";
-import { rateLimit } from "express-rate-limit";
-import { StatusCodes } from "http-status-codes";
 import { getUserDetails } from "@/modules/auth/auth.controller";
+import { rateLimiterMiddleware } from "@/misc/utils";
+import {
+  RateLimiterPostgres,
+  type IRateLimiterOptions,
+} from "rate-limiter-flexible";
+import { pool } from "@/db/pool";
+import { minutesToSeconds } from "date-fns";
 
-const authRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  limit: 10,
-  ipv6Subnet: 52,
-  handler: (_req, _res, _next) => {
-    throw new AppError({
-      message: "[A] You've been doing that a lot! Take a break!",
-      code: StatusCodes.TOO_MANY_REQUESTS,
-    });
-  },
-  keyGenerator: (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = Array.isArray(forwarded)
-      ? forwarded[0]
-      : forwarded?.split(",")[0];
-    return ip?.trim() || req.ip;
-  },
-});
-
-const otherRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  limit: 60,
-  ipv6Subnet: 52,
-  handler: (_req, _res, _next) => {
-    throw new AppError({
-      message: "You've been doing that a lot! Take a break!",
-      code: StatusCodes.TOO_MANY_REQUESTS,
-    });
-  },
-  keyGenerator: (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-    const ip = Array.isArray(forwarded)
-      ? forwarded[0]
-      : forwarded?.split(",")[0];
-    return ip?.trim() || req.ip;
-  },
-});
+const createRateLimiter = (options: IRateLimiterOptions) =>
+  new RateLimiterPostgres({
+    ...options,
+    tableCreated: true,
+    tableName: "rate_limit",
+    dbName: "hngtask1",
+    storeClient: pool,
+  });
 
 const app: Express = express();
 app.use(
@@ -77,13 +53,30 @@ app.get("/", (_req, res) => {
 app.get("/api/users/me", authenticate, getUserDetails);
 app.use(
   "/api/profiles",
-  otherRateLimit,
+  rateLimiterMiddleware(
+    createRateLimiter({
+      duration: minutesToSeconds(1),
+      keyPrefix: "other_",
+      points: 60,
+    }),
+  ),
   requireApiVersion,
   authenticate,
   isActive,
   profileRoutes,
 );
-app.use("/auth", authRateLimit, authRoutes);
+
+app.use(
+  "/auth",
+  rateLimiterMiddleware(
+    createRateLimiter({
+      duration: minutesToSeconds(1),
+      keyPrefix: "admin_",
+      points: 10,
+    }),
+  ),
+  authRoutes,
+);
 
 app.use(
   (
