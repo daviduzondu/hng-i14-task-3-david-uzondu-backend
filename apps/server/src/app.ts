@@ -15,22 +15,8 @@ import cookieParser from "cookie-parser";
 import { authenticate, isActive } from "@/modules/auth/auth.middleware";
 import { requireApiVersion } from "@/modules/profile/profile.middleware";
 import { getUserDetails } from "@/modules/auth/auth.controller";
-import { rateLimiterMiddleware } from "@/misc/utils";
-import {
-  RateLimiterPostgres,
-  type IRateLimiterOptions,
-} from "rate-limiter-flexible";
-import { pool } from "@/db/pool";
+import { createRateLimiter, rateLimiterMiddleware } from "@/misc/utils";
 import { minutesToSeconds } from "date-fns";
-
-const createRateLimiter = (options: IRateLimiterOptions) =>
-  new RateLimiterPostgres({
-    ...options,
-    tableCreated: true,
-    tableName: "rate_limit",
-    dbName: "hngtask1",
-    storeClient: pool,
-  });
 
 const app: Express = express();
 app.use(
@@ -68,13 +54,6 @@ app.use(
 
 app.use(
   "/auth",
-  rateLimiterMiddleware(
-    createRateLimiter({
-      duration: minutesToSeconds(1),
-      keyPrefix: "admin_",
-      points: 10,
-    }),
-  ),
   authRoutes,
 );
 
