@@ -10,6 +10,21 @@ import type { Role } from "@/db/generated/types";
 import { StatusCodes } from "http-status-codes";
 import type { Request, Response, NextFunction } from "express";
 import type { RateLimiterAbstract } from "rate-limiter-flexible";
+import {
+  RateLimiterPostgres,
+  type IRateLimiterOptions,
+} from "rate-limiter-flexible";
+import { pool } from "@/db/pool";
+import { millisecondsToSeconds, minutesToSeconds } from "date-fns";
+
+export const createRateLimiter = (options: IRateLimiterOptions) =>
+  new RateLimiterPostgres({
+    ...options,
+    tableCreated: true,
+    tableName: "rate_limit",
+    dbName: "hngtask1",
+    storeClient: pool,
+  });
 
 //  res.cookie('refreshToken', token, {
 //     httpOnly: true,         // So JS would not be able to read this cookie
@@ -27,8 +42,10 @@ export const rateLimiterMiddleware =
       .then(() => {
         next();
       })
-      .catch((err) => {
+      .catch(async (err) => {
+        const rlRes = await rateLimiter.get(req.ip);
         res
+          .set("Retry-After", String(millisecondsToSeconds(rlRes.msBeforeNext)))
           .status(StatusCodes.TOO_MANY_REQUESTS)
           .json({ status: "error", message: "Too Many Requests" });
       });
