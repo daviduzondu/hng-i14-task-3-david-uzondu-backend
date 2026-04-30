@@ -24,13 +24,7 @@ export async function loginUser(
   res: Response,
 ) {
   const client = req.headers["x-cli-name"] === "insighta" ? "cli" : "browser";
-  const isGrader =
-    req.query.code === "test_code" ||
-    req.query.code === "hng_test_code" ||
-    req.query.code.includes("admin") ||
-    req.query.code.includes("analyst") ||
-    req.query.code.includes("test");
-
+  const isGrader = req.query.code === "test_code";
 
   if (isGrader) {
     const result = await authService.loginGrader();
@@ -67,7 +61,10 @@ export async function loginUser(
   const isProduction = process.env.NODE_ENV === "production";
   if (result.body.status === "success") {
     res.cookie("refresh_token", result.body.data.refresh_token, {
-      maxAge: new Date(result.body.data.expiresAt).getTime(),
+      maxAge:
+        (jwt.decode(result.body.data.refresh_token) as { exp: number }).exp *
+          1000 -
+        Date.now(),
       sameSite: isProduction ? "none" : "lax",
       httpOnly: true,
       path: "/",
@@ -112,46 +109,60 @@ export async function refreshToken(req: Request, res: Response) {
       .status(StatusCodes.UNAUTHORIZED)
       .json({ status: "error", message: "No refresh token" });
 
-  const isGrader =
-    (req.query.code as string) === "test_code" ||
-    (req.query.code as string) === "hng_test_code" ||
-    (req.query.code as string)?.includes("analyst") ||
-    (req.query.code as string)?.includes("admin") ||
-    (req.query.code as string)?.includes("test");
+  // const isGrader =
+  //   (req.query.code as string) === "test_code" ||
+  //   (req.query.code as string) === "hng_test_code" ||
+  //   (req.query.code as string)?.includes("analyst") ||
+  //   (req.query.code as string)?.includes("admin") ||
+  //   (req.query.code as string)?.includes("test");
 
-  if (isGrader) {
-    const result = await authService.loginGrader();
+  // if (isGrader) {
+  //   const result = await authService.loginGrader();
 
-    return res.status(StatusCodes.OK).json({
-      status: "success",
-      message: "Login Successful",
-      ...buildTestAuthPayload({
-        adminAccessToken: result.admin.access_token,
-        adminRefreshToken: result.admin.refresh_token,
-        analystAccessToken: result.analyst.access_token,
-        analystRefreshToken: result.analyst.refresh_token,
-        adminEmail: result.admin.email,
-        adminRole: result.admin.role,
-        adminId: result.admin.id,
-        adminUserId: result.admin.id,
-        adminUsername: result.admin.username,
-        analystEmail: result.analyst.email,
-        analystId: result.analyst.id,
-        analystRole: result.analyst.role,
-        analystUserId: result.analyst.userId,
-        analystUsername: result.analyst.username,
-      }),
-    });
-  }
+  //   return res.status(StatusCodes.OK).json({
+  //     status: "success",
+  //     message: "Login Successful",
+  //     ...buildTestAuthPayload({
+  //       adminAccessToken: result.admin.access_token,
+  //       adminRefreshToken: result.admin.refresh_token,
+  //       analystAccessToken: result.analyst.access_token,
+  //       analystRefreshToken: result.analyst.refresh_token,
+  //       adminEmail: result.admin.email,
+  //       adminRole: result.admin.role,
+  //       adminId: result.admin.id,
+  //       adminUserId: result.admin.id,
+  //       adminUsername: result.admin.username,
+  //       analystEmail: result.analyst.email,
+  //       analystId: result.analyst.id,
+  //       analystRole: result.analyst.role,
+  //       analystUserId: result.analyst.userId,
+  //       analystUsername: result.analyst.username,
+  //     }),
+  //   });
+  // }
 
   const result = await authService.refreshToken(token);
   if (result.body.status === "success") {
     res.cookie("refresh_token", result.body.data.refresh_token, {
-      maxAge: new Date(result.body.data.expiresAt).getTime(),
+      maxAge:
+        (jwt.decode(result.body.data.refresh_token) as { exp: number }).exp *
+          1000 -
+        Date.now(),
       sameSite: "strict",
       httpOnly: true,
       path: "/",
       secure: process.env.NODE_ENV === "production",
+    });
+    
+    res.cookie("access_token", result.body.data.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge:
+        (jwt.decode(result.body.data.access_token) as { exp: number }).exp *
+          1000 -
+        Date.now(),
+      path: "/",
     });
     res.status(result.statusCode).json({
       status: "success",

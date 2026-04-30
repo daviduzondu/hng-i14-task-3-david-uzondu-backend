@@ -55,23 +55,23 @@ router.get(
 // router.get("/me", authenticate, authController.getUserDetails);
 router.post(
   "/refresh",
-  (req, res, next) => {
-    const authHeader = req.headers.authorization;
+  // (req, res, next) => {
+  //   const authHeader = req.headers.authorization;
 
-    const token =
-      (authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7)
-        : undefined) || req.cookies?.access_token;
+  //   const token =
+  //     (authHeader && authHeader.startsWith("Bearer ")
+  //       ? authHeader.slice(7)
+  //       : undefined) || req.cookies?.access_token;
 
-    if (!token) {
-      throw new AppError({
-        message: "Missing access token",
-        code: StatusCodes.UNAUTHORIZED,
-      });
-    }
+  //   if (!token) {
+  //     throw new AppError({
+  //       message: "Missing access token",
+  //       code: StatusCodes.UNAUTHORIZED,
+  //     });
+  //   }
 
-    next();
-  },
+  //   next();
+  // },
   authController.refreshToken,
 );
 router.post("/logout", authenticate, authController.logout);
